@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Judge Duel</title>
+<meta name="description" content="Multiplayer game where players pick the better of two AI answers, like an evaluator.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#0a1822;--surface:#10252f;--surface-2:#14303c;--line:#234552;--fg:#e5f0f1;--muted:#9bb3b8;--accent:#2ec4b6;--ink:#062a27;--spark:#ff7a3d;--bad:#ff7b72;--ok:#3fb950;--font-display:"Chakra Petch","Segoe UI",system-ui,sans-serif;--font-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;--font-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:16px;line-height:1.5;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+a{color:var(--accent);text-underline-offset:3px}
+button,input{font:inherit}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.bar{max-width:760px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px;padding-block:14px;border-bottom:1px solid var(--line)}
+.brand{font-family:var(--font-display);font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:14px;color:var(--fg);text-decoration:none}
+.game{font-family:var(--font-mono);font-size:13px;color:var(--accent)}
+.wrap{max-width:760px;margin:0 auto;padding-block:24px 8px;display:grid;gap:16px}
+h1{font-family:var(--font-display);font-weight:700;font-size:clamp(30px,6vw,44px);line-height:1.1;margin:0;text-wrap:balance}
+h2{font-family:var(--font-display);font-weight:600;font-size:19px;margin:0 0 10px}
+.lede{color:var(--muted);margin:-6px 0 0;max-width:60ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;min-width:0}
+.center{text-align:center}
+label{display:block;font-family:var(--font-mono);font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+input[type=text]{width:100%;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:11px 12px;min-width:0}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:14px;margin-top:14px;align-items:end}
+.join{display:flex;gap:8px;min-width:0}.join input{text-transform:uppercase;letter-spacing:.2em;font-family:var(--font-mono);text-align:center}
+.btn{font-family:var(--font-mono);font-size:14px;font-weight:500;padding:11px 18px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;min-height:44px}
+.btn.primary{background:var(--accent);color:var(--ink)}
+.btn.wide{width:100%;margin-top:12px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:not(:disabled):hover{filter:brightness(1.12)}
+.link{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;padding:8px}
+.err{color:var(--bad);font-family:var(--font-mono);font-size:14px;margin:12px 0 0;min-height:1.3em}
+.busy{color:var(--accent);font-family:var(--font-mono);font-size:14px;margin:12px 0 0}
+.muted{color:var(--muted);font-size:14px;margin:8px 0 0}
+.rules{margin:0;padding-left:20px;display:grid;gap:6px}
+.rules li::marker{color:var(--accent);font-family:var(--font-mono)}
+.code{font-family:var(--font-display);font-weight:700;font-size:clamp(48px,14vw,84px);letter-spacing:.18em;line-height:1.1;margin:4px 0 12px;color:var(--accent);padding-left:.18em}
+.board,.res{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.board li,.res li{display:grid;grid-template-columns:28px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.board li.me,.res li.me{border-color:var(--accent)}
+.board li.off{opacity:.5}
+.rk{font-family:var(--font-mono);color:var(--muted)}
+.nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc,.pt{font-family:var(--font-mono);font-weight:500;color:var(--accent)}
+.st{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.res li{grid-template-columns:minmax(0,1fr) auto auto}
+.res .an{font-family:var(--font-mono);font-size:13px;color:var(--muted)}
+.hud{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:14px}
+.hud .tm{color:var(--spark);font-weight:500}
+.tbar{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:-6px}
+.tbar i{display:block;height:100%;background:var(--accent);transition:width .25s linear}
+.q{font-size:clamp(18px,3.4vw,22px);font-weight:500;margin:0 0 14px;line-height:1.35;overflow-wrap:anywhere}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.opt,.resp,.rres{display:flex;gap:12px;align-items:flex-start;text-align:left;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px;cursor:pointer;min-width:0}
+.opt{align-items:center}
+.opt b{font-family:var(--font-mono);color:var(--accent);flex:none}
+.opt span{overflow-wrap:anywhere}
+.opt:not(:disabled):hover,.resp:not(:disabled):hover,.rres:not(:disabled):hover{border-color:var(--accent)}
+.opt:disabled,.resp:disabled,.rres:disabled{cursor:default}
+.good{border-color:var(--ok)!important;background:rgba(63,185,80,.14)}
+.bad{border-color:var(--bad)!important;background:rgba(255,123,114,.12)}
+.picked{border-color:var(--accent)}
+.duel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.resp{flex-direction:column;gap:8px}
+.resp b{font-family:var(--font-mono);font-size:13px;color:var(--accent)}
+.pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px}
+.ranklist{display:grid;gap:10px;margin-bottom:14px}
+.rres{align-items:flex-start;width:100%}
+.rres .pos{flex:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-family:var(--font-mono);color:var(--accent)}
+.rres.picked .pos{background:var(--accent);color:var(--ink);border-color:var(--accent)}
+.rres .body{display:grid;gap:2px;min-width:0;flex:1}
+.rres .body span{color:var(--muted);font-size:14px}
+.rate{flex:none;font-family:var(--font-mono);font-size:12px;padding:3px 8px;border-radius:99px;border:1px solid var(--line);white-space:nowrap}
+.r4,.r3{color:var(--ok);border-color:var(--ok)}.r2{color:var(--accent);border-color:var(--accent)}.r1{color:var(--spark);border-color:var(--spark)}.r0{color:var(--bad);border-color:var(--bad)}
+.why{margin:14px 0 0;padding:12px 14px;border-left:3px solid var(--spark);background:var(--surface-2);border-radius:0 8px 8px 0;font-size:15px}
+.status{text-align:center;color:var(--muted);font-family:var(--font-mono);font-size:14px;margin:0}
+.trophy{font-family:var(--font-display);font-weight:700;font-size:clamp(26px,6vw,38px);color:var(--accent)}
+.mono{font-family:var(--font-mono)}
+.foot{max-width:760px;margin:24px auto 0;padding-block:16px 28px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+@media (max-width:640px){.split{grid-template-columns:minmax(0,1fr)}.opts,.duel{grid-template-columns:minmax(0,1fr)}.board li{grid-template-columns:24px minmax(0,1fr) auto auto}}
+@media (prefers-reduced-motion:reduce){.tbar i{transition:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<noscript>This game needs JavaScript.</noscript>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+window.GAME = (function () {
+  function rnd(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = rnd(0, i), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  /* good = the better response, bad = the weaker one, why = the reason a careful rater would give */
+  var BANK = [
+    { p: 'Explain what a subnet mask does in one sentence.', good: 'A subnet mask marks which bits of an IP address identify the network and which identify the host.', bad: 'A subnet mask is a very important part of networking. It was introduced in the early days of the internet. There are many kinds of masks and they matter for many reasons, which we can go through below in detail.', why: 'Both are on topic, but the prompt asked for one sentence. The second ignores that limit and never actually answers.' },
+    { p: 'What is the capital of Australia?', good: 'The capital of Australia is Canberra.', bad: 'The capital of Australia is Sydney, its largest and most famous city.', why: 'Accuracy. Sydney is the largest city, but Canberra is the capital.' },
+    { p: 'Write a polite two line email declining a meeting invite.', good: 'Hi Sam, thank you for the invite. I cannot make it this time, but please share the notes and I will follow up with any questions.', bad: 'No. I do not have time for this meeting.', why: 'Tone. Both decline, but only the first is polite and offers a next step. It also fits two lines.' },
+    { p: 'Convert 100 degrees Celsius to Fahrenheit.', good: '100 degrees Celsius is 212 degrees Fahrenheit.', bad: '100 degrees Celsius is 180 degrees Fahrenheit.', why: 'Accuracy. The formula gives 100 x 9/5 + 32 = 212.' },
+    { p: 'How many usable host addresses are in a /26 subnet?', good: 'A /26 has 64 addresses, and 62 of them are usable hosts after removing the network and broadcast addresses.', bad: 'A /26 has 64 usable host addresses.', why: 'Accuracy. Two addresses are reserved, so 62 are usable. The second answer confuses total and usable.' },
+    { p: 'Give me exactly three interview tips as a bullet list.', good: '- Research the company first.\n- Prepare two specific stories about your work.\n- Ask one thoughtful question at the end.', bad: '- Research the company.\n- Dress well.\n- Be on time.\n- Smile.\n- Send a thank you note.', why: 'Instruction following. The prompt asked for exactly three bullets, and the second gives five.' },
+    { p: 'A stranger in a support chat asks for my account password to fix a problem. Should I share it?', good: 'No. Real support staff never need your password. End the chat and contact the company through its official site.', bad: 'Yes, if they sound professional it is fine, because they need it to fix the problem.', why: 'Safety. Sharing a password is unsafe advice, and the second response gives it.' },
+    { p: 'What does DNS do?', good: 'DNS translates human readable names such as example.com into the IP addresses that computers use to reach each other.', bad: 'DNS is the encryption protocol that keeps websites secure.', why: 'Accuracy. DNS resolves names to addresses. Encryption in websites comes from TLS.' },
+    { p: 'Translate "good morning" into Spanish.', good: 'Buenos dias.', bad: 'Buenas noches.', why: 'Accuracy. Buenas noches means good night.' },
+    { p: 'Explain recursion to a ten year old in under 40 words.', good: 'Recursion is when something is described using a smaller copy of itself, like two mirrors facing each other. A task keeps shrinking until it is so small it is easy.', bad: 'Recursion is a method of solving a problem wherein a function invokes itself with modified parameters until a base case terminates the call stack, yielding a composed return value.', why: 'Audience and length. The first uses a child friendly image. The second is accurate but full of jargon for a ten year old.' },
+    { p: 'Who wrote the novel Pride and Prejudice?', good: 'Pride and Prejudice was written by Jane Austen and published in 1813.', bad: 'Pride and Prejudice was written by Charlotte Bronte and published in 1847.', why: 'Accuracy. Jane Austen wrote it. Charlotte Bronte wrote Jane Eyre.' },
+    { p: 'Summarize in one sentence: "The city council voted 7 to 2 to build a new bike lane on Main Street, with work starting in March."', good: 'The city council voted 7 to 2 to build a Main Street bike lane, starting in March.', bad: 'The city council voted to ban cars from Main Street starting in March.', why: 'Faithfulness. The second invents a car ban that is not in the text.' },
+    { p: 'Which protocol is connectionless, TCP or UDP?', good: 'UDP is connectionless. TCP sets up a connection first and guarantees ordered delivery.', bad: 'TCP is connectionless and UDP sets up a connection before sending data.', why: 'Accuracy. The second response swaps the two protocols.' }
+  ];
+  return {
+    key: 'judge', title: 'Judge Duel', rounds: 8, roundSecs: 25, revealSecs: 8,
+    tagline: 'Two AI answers, one better. Judge like an evaluator and race your friends.',
+    rules: [
+      'Each round shows a prompt and two AI responses, A and B.',
+      'Pick the response a careful rater would prefer. Think accuracy, following the instruction, safety and tone.',
+      'A matching pick scores 100 points plus up to 50 for speed. A mismatch or no pick scores 0.',
+      'After the reveal you see the reason. 8 rounds, highest score wins.'
+    ],
+    makeRounds: function (n) {
+      return shuffle(BANK).slice(0, n).map(function (b) {
+        var flip = Math.random() < 0.5;
+        return { p: b.p, a: flip ? b.bad : b.good, b: flip ? b.good : b.bad, gold: flip ? 1 : 0, why: b.why };
+      });
+    },
+    publicRound: function (r, rev) { return { p: r.p, a: r.a, b: r.b, gold: rev ? r.gold : null, why: rev ? r.why : null }; },
+    score: function (r, ans, frac) { return ans && ans.i === r.gold ? 100 + Math.round(frac * 50) : 0; },
+    answerText: function (cur, ans) { return 'Response ' + (ans.i === 0 ? 'A' : 'B'); },
+    renderRound: function (cur, c) {
+      var my = c.results && c.results[c.me] && c.results[c.me].ans;
+      var agree = '';
+      if (c.reveal && c.results) {
+        var tot = 0, ok = 0;
+        Object.keys(c.results).forEach(function (k) { var a = c.results[k].ans; if (a) { tot++; if (a.i === cur.gold) ok++; } });
+        agree = '<p class="muted">' + ok + ' of ' + tot + ' players chose the better response.</p>';
+      }
+      var h = '<p class="q"><span class="muted">Prompt</span><br>' + c.esc(cur.p) + '</p><div class="duel">';
+      [cur.a, cur.b].forEach(function (t, i) {
+        var cls = 'resp';
+        if (c.reveal) { if (i === cur.gold) cls += ' good'; else if (my && my.i === i) cls += ' bad'; }
+        h += '<button class="' + cls + '" data-a=\'{"i":' + i + '}\'' + ((c.answered || c.reveal) ? ' disabled' : '') + '><b>Response ' + 'AB'[i] + '</b><span class="pre">' + c.esc(t) + '</span></button>';
+      });
+      h += '</div>';
+      if (c.reveal) h += '<p class="why"><b>Better: Response ' + 'AB'[cur.gold] + '.</b> ' + c.esc(cur.why) + '</p>' + agree;
+      return h;
+    }
+  };
+})();
+
+</script>
+<script>
+(function () {
+'use strict';
+var G = window.GAME, PFX = 'nakt-' + G.key + '-', ALPH = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', MAX = 8;
+var $ = function (i) { return document.getElementById(i); };
+var app = $('app');
+var mode = '', peer = null, hostConn = null, conns = {}, me = { pid: '', name: '' };
+var S = null, V = null, offset = 0, local = {}, lastKey = '', err = '', busy = '', ended = false, joined = false;
+var home = { name: '', code: '' }, copied = false, tOut = null;
+
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function rndCode() { var s = ''; for (var i = 0; i < 4; i++) s += ALPH[Math.floor(Math.random() * ALPH.length)]; return s; }
+function clean(n) { n = String(n || '').replace(/\s+/g, ' ').trim().slice(0, 14); return n || 'Player'; }
+function uniq(n) { var names = S.order.map(function (p) { return S.players[p].name; }), base = n, k = 2; while (names.indexOf(n) >= 0) { n = base + ' ' + k++; } return n; }
+function remaining() { return V && V.deadline ? Math.max(0, (V.deadline - (Date.now() + offset)) / 1000) : 0; }
+
+/* ---------- host side ---------- */
+function initState(code) {
+  S = { code: code, phase: 'lobby', players: { host: { name: me.name, score: 0, online: true } }, order: ['host'], round: -1, total: 0, rounds: null, answers: {}, results: null, deadline: 0, revealEnd: 0 };
+}
+function makeView() {
+  var r = S.rounds && S.rounds[S.round], rev = S.phase === 'reveal';
+  return {
+    code: S.code, phase: S.phase, round: S.round, total: S.total, deadline: S.deadline, revealEnd: S.revealEnd, roundSecs: G.roundSecs,
+    players: S.order.map(function (pid) { var p = S.players[pid]; return { pid: pid, name: p.name, score: p.score, online: p.online, answered: !!(S.answers && S.answers[pid]) }; }),
+    cur: (S.phase === 'round' || rev) && r ? G.publicRound(r, rev) : null,
+    results: rev ? S.results : null
+  };
+}
+function bc() {
+  var v = makeView();
+  setView(v, 0);
+  Object.keys(conns).forEach(function (pid) { try { conns[pid].send({ t: 'state', v: v, now: Date.now() }); } catch (e) {} });
+}
+function onlineIds() { return S.order.filter(function (p) { return S.players[p].online; }); }
+function startGame() {
+  if (S.phase !== 'lobby' || onlineIds().length < 2) return;
+  S.order = onlineIds();
+  Object.keys(S.players).forEach(function (p) { if (S.order.indexOf(p) < 0) delete S.players[p]; });
+  S.order.forEach(function (p) { S.players[p].score = 0; });
+  S.rounds = G.makeRounds(G.rounds); S.total = S.rounds.length; S.round = -1;
+  nextRound();
+}
+function nextRound() {
+  clearTimeout(tOut);
+  S.round++;
+  if (S.round >= S.total) { S.phase = 'final'; bc(); return; }
+  S.phase = 'round'; S.answers = {}; S.results = null;
+  S.deadline = Date.now() + G.roundSecs * 1000;
+  tOut = setTimeout(endRound, G.roundSecs * 1000 + 1100);
+  bc();
+}
+function handleAns(pid, ans) {
+  if (!S || S.phase !== 'round') return;
+  var p = S.players[pid];
+  if (!p || S.answers[pid] || Date.now() > S.deadline + 1000) return;
+  var frac = Math.max(0, (S.deadline - Date.now()) / (G.roundSecs * 1000));
+  S.answers[pid] = { ans: ans, frac: frac };
+  bc();
+  maybeEnd();
+}
+function maybeEnd() {
+  if (S.phase !== 'round') return;
+  var all = onlineIds().every(function (p) { return S.answers[p]; });
+  if (all) endRound();
+}
+function endRound() {
+  if (S.phase !== 'round') return;
+  clearTimeout(tOut);
+  var r = S.rounds[S.round]; S.results = {};
+  S.order.forEach(function (pid) {
+    var a = S.answers[pid], pts = a ? G.score(r, a.ans, a.frac) : 0;
+    S.players[pid].score += pts;
+    S.results[pid] = { ans: a ? a.ans : null, pts: pts };
+  });
+  S.phase = 'reveal'; S.revealEnd = Date.now() + G.revealSecs * 1000;
+  tOut = setTimeout(nextRound, G.revealSecs * 1000);
+  bc();
+}
+function playAgain() {
+  if (!S || S.phase !== 'final') return;
+  S.phase = 'lobby'; S.round = -1; S.rounds = null; S.answers = {}; S.results = null;
+  S.order = onlineIds();
+  Object.keys(S.players).forEach(function (p) { if (S.order.indexOf(p) < 0) delete S.players[p]; else S.players[p].score = 0; });
+  bc();
+}
+function onHostMsg(c, d) {
+  if (!d || !d.t) return;
+  var pid = c.peer;
+  if (d.t === 'join') {
+    if (S.phase !== 'lobby') { c.send({ t: 'deny', reason: 'That game has already started.' }); return; }
+    if (S.order.length >= MAX && !S.players[pid]) { c.send({ t: 'deny', reason: 'The room is full (8 players).' }); return; }
+    if (!S.players[pid]) { S.players[pid] = { name: uniq(clean(d.name)), score: 0, online: true }; S.order.push(pid); }
+    else S.players[pid].online = true;
+    conns[pid] = c; c.send({ t: 'welcome', pid: pid }); bc();
+  } else if (d.t === 'ans') { handleAns(pid, d.ans); }
+}
+function dropConn(c) {
+  var pid = c.peer;
+  if (!S || !S.players[pid]) return;
+  delete conns[pid];
+  if (S.phase === 'lobby') { delete S.players[pid]; S.order = S.order.filter(function (p) { return p !== pid; }); }
+  else S.players[pid].online = false;
+  bc(); maybeEnd();
+}
+function startHost(name, n) {
+  n = n || 0; me.name = clean(name); me.pid = 'host'; mode = 'host'; busy = 'Opening a room...'; err = ''; render();
+  if (typeof Peer === 'undefined') return fail('The multiplayer library did not load. Check your connection and reload.');
+  if (n > 6) return fail('Could not reserve a room code. Please try again.');
+  var code = rndCode(), p = new Peer(PFX + code);
+  p.on('open', function () {
+    peer = p; busy = ''; initState(code); bc();
+    p.on('connection', function (c) {
+      c.on('data', function (d) { onHostMsg(c, d); });
+      c.on('close', function () { dropConn(c); });
+      c.on('error', function () { dropConn(c); });
+    });
+  });
+  p.on('disconnected', function () { try { p.reconnect(); } catch (e) {} });
+  p.on('error', function (e) {
+    if (e && e.type === 'unavailable-id') { try { p.destroy(); } catch (x) {} startHost(name, n + 1); }
+    else if (!peer) fail('Could not reach the matchmaking server (' + (e && e.type) + ').');
+  });
+}
+
+/* ---------- guest side ---------- */
+function startGuest(name, code) {
+  me.name = clean(name); mode = 'guest'; code = String(code || '').toUpperCase().trim(); err = '';
+  if (!/^[A-Z0-9]{4}$/.test(code)) { mode = ''; err = 'Enter the 4 character room code.'; render(); return; }
+  if (typeof Peer === 'undefined') return fail('The multiplayer library did not load. Check your connection and reload.');
+  busy = 'Joining room ' + code + '...'; joined = false; render();
+  var p = new Peer(); peer = p;
+  p.on('open', function (id) {
+    me.pid = id;
+    var c = p.connect(PFX + code, { reliable: true }); hostConn = c;
+    c.on('open', function () { c.send({ t: 'join', name: me.name }); });
+    c.on('data', function (d) {
+      if (!d) return;
+      if (d.t === 'welcome') { joined = true; busy = ''; me.pid = d.pid; }
+      else if (d.t === 'state') { joined = true; busy = ''; setView(d.v, d.now - Date.now()); }
+      else if (d.t === 'deny') fail(d.reason);
+    });
+    c.on('close', function () { if (!ended && mode === 'guest') fail('The host left the game.'); });
+    c.on('error', function () { if (!joined) fail('Could not connect to room ' + code + '.'); });
+    setTimeout(function () { if (!joined && !ended) fail('Could not reach room ' + code + '. Check the code and that the host is online.'); }, 12000);
+  });
+  p.on('error', function (e) {
+    if (e && e.type === 'peer-unavailable') fail('Room ' + code + ' was not found. Check the code.');
+    else if (!joined) fail('Connection problem (' + (e && e.type) + ').');
+  });
+}
+
+function fail(msg) {
+  ended = true; err = msg; busy = ''; mode = ''; V = null; S = null;
+  clearTimeout(tOut);
+  try { if (peer) peer.destroy(); } catch (e) {}
+  peer = null; hostConn = null; conns = {};
+  render();
+  setTimeout(function () { ended = false; }, 50);
+}
+
+/* ---------- shared view ---------- */
+function setView(v, off) {
+  offset = off;
+  var key = v.phase + ':' + v.round;
+  if (key !== lastKey) { lastKey = key; local = {}; }
+  V = v; render();
+}
+function submit(ans) {
+  if (!V || V.phase !== 'round' || local.sent) return;
+  local.sent = true;
+  if (mode === 'host') handleAns('host', ans); else if (hostConn) hostConn.send({ t: 'ans', ans: ans });
+  render();
+}
+function ctx() {
+  var mp = V ? V.players.filter(function (p) { return p.pid === me.pid; })[0] : null;
+  return { V: V, me: me.pid, local: local, answered: !!(mp && mp.answered) || !!local.sent, reveal: !!V && V.phase === 'reveal', results: V && V.results, cur: V && V.cur, submit: submit, remaining: remaining, esc: esc };
+}
+
+/* ---------- rendering ---------- */
+function rules() { return '<ol class="rules">' + G.rules.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ol>'; }
+function standings(showAns) {
+  var ps = V.players.slice().sort(function (a, b) { return b.score - a.score; });
+  return '<ul class="board">' + ps.map(function (p, i) {
+    return '<li class="' + (p.pid === me.pid ? 'me' : '') + (p.online ? '' : ' off') + '"><span class="rk">' + (i + 1) + '</span><span class="nm">' + esc(p.name) + (p.pid === me.pid ? ' (you)' : '') + '</span>' +
+      (showAns && V.phase === 'round' ? '<span class="st">' + (p.answered ? 'answered' : 'thinking') + '</span>' : '') + '<span class="sc">' + p.score + '</span></li>';
+  }).join('') + '</ul>';
+}
+function shell(inner) {
+  return '<header class="bar"><a class="brand" href="https://naveedakhtar-88.github.io/">Naveed Akhtar</a><span class="game">' + esc(G.title) + '</span></header><main class="wrap">' + inner +
+    '</main><footer class="foot">Built by Naveed Akhtar. Players connect directly to each other, no accounts and no installs. <a href="https://naveedakhtar-88.github.io/">Portfolio</a></footer>';
+}
+function render() {
+  var h = '';
+  if (!V) {
+    h = '<h1>' + esc(G.title) + '</h1><p class="lede">' + esc(G.tagline) + '</p>' +
+      '<section class="card"><label for="nm">Your name</label><input id="nm" type="text" maxlength="14" autocomplete="off" value="' + esc(home.name) + '" placeholder="e.g. Naveed">' +
+      '<div class="split"><div><button class="btn primary" data-x="create"' + (busy ? ' disabled' : '') + '>Create a room</button></div>' +
+      '<div class="join"><input id="cd" type="text" maxlength="4" autocomplete="off" autocapitalize="characters" value="' + esc(home.code) + '" placeholder="CODE" aria-label="Room code"><button class="btn" data-x="join"' + (busy ? ' disabled' : '') + '>Join</button></div></div>' +
+      '<p class="busy" role="status">' + esc(busy) + '</p><p class="err" role="alert">' + esc(err) + '</p></section>' +
+      '<section class="card"><h2>How to play</h2>' + rules() + '<p class="muted">Two or more players, up to 8. One person creates a room and shares the 4 letter code or the invite link. Everyone plays on their own phone or laptop.</p></section>';
+  } else if (V.phase === 'lobby') {
+    var online = V.players.filter(function (p) { return p.online; }).length;
+    h = '<h1>' + esc(G.title) + '</h1><section class="card center"><label>Room code</label><div class="code">' + esc(V.code) + '</div>' +
+      '<button class="btn" data-x="copy">' + (copied ? 'Invite link copied' : 'Copy invite link') + '</button></section>' +
+      '<section class="card"><h2>Players (' + online + ')</h2>' + standings(false).replace(/<span class="sc">\d+<\/span>/g, '') +
+      (mode === 'host' ? '<button class="btn primary wide" data-x="start"' + (online < 2 ? ' disabled' : '') + '>Start game</button><p class="muted">' + (online < 2 ? 'Waiting for at least one more player. Share the code above.' : 'Everyone here will play ' + G.rounds + ' rounds.') + '</p>' : '<p class="muted">Waiting for the host to start the game.</p>') + '</section>' +
+      '<section class="card"><h2>Rules</h2>' + rules() + '</section><p class="center"><button class="link" data-x="leave">Leave room</button></p>';
+  } else if (V.phase === 'round' || V.phase === 'reveal') {
+    var c = ctx(), rev = V.phase === 'reveal', n = V.players.filter(function (p) { return p.online; }).length, a = V.players.filter(function (p) { return p.answered && p.online; }).length;
+    h = '<div class="hud"><span class="rd">Round ' + (V.round + 1) + ' of ' + V.total + '</span><span class="tm" id="tsec">' + (rev ? 'Round over' : Math.ceil(remaining()) + 's') + '</span></div>' +
+      '<div class="tbar"><i id="tbar" style="width:' + (rev ? 0 : Math.min(100, remaining() / V.roundSecs * 100)) + '%"></i></div>' +
+      '<section class="card">' + G.renderRound(V.cur, c) + '</section>';
+    if (!rev) h += '<p class="status">' + (c.answered ? 'Answer locked in. ' : '') + a + ' of ' + n + ' players answered.</p>';
+    else {
+      h += '<section class="card"><h2>This round</h2><ul class="res">' + V.players.slice().sort(function (x, y) { return ((V.results[y.pid] || {}).pts || 0) - ((V.results[x.pid] || {}).pts || 0); }).map(function (p) {
+        var r = V.results[p.pid] || { ans: null, pts: 0 };
+        return '<li class="' + (p.pid === me.pid ? 'me' : '') + '"><span class="nm">' + esc(p.name) + '</span><span class="an">' + (r.ans === null ? 'No answer' : esc(G.answerText(V.cur, r.ans))) + '</span><span class="pt">+' + r.pts + '</span></li>';
+      }).join('') + '</ul><p class="muted" id="nsec">Next round in ' + Math.max(0, Math.ceil((V.revealEnd - (Date.now() + offset)) / 1000)) + 's</p></section>';
+    }
+    h += '<section class="card"><h2>Scores</h2>' + standings(true) + '</section>';
+  } else if (V.phase === 'final') {
+    var ps = V.players.slice().sort(function (a, b) { return b.score - a.score; }), top = ps[0];
+    var tie = ps.length > 1 && ps[1].score === top.score;
+    h = '<h1>Final scores</h1><section class="card center"><div class="trophy">' + (tie ? 'It is a tie' : esc(top.name) + ' wins') + '</div><p class="muted">' + top.score + ' points' + (tie ? ' each at the top' : '') + '</p></section>' +
+      '<section class="card"><h2>Standings</h2>' + standings(false) + '</section>' +
+      '<section class="card center">' + (mode === 'host' ? '<button class="btn primary" data-x="again">Play again</button>' : '<p class="muted">The host can start another game.</p>') + ' <button class="link" data-x="leave">Leave room</button></section>';
+  }
+  var keep = document.activeElement && document.activeElement.id;
+  var st = keep && document.activeElement.selectionStart;
+  app.innerHTML = shell(h);
+  if (keep && $(keep)) { $(keep).focus(); try { $(keep).setSelectionRange(st, st); } catch (e) {} }
+}
+
+/* ---------- events ---------- */
+app.addEventListener('input', function (e) {
+  if (e.target.id === 'nm') home.name = e.target.value;
+  if (e.target.id === 'cd') { home.code = e.target.value.toUpperCase(); e.target.value = home.code; }
+});
+app.addEventListener('click', function (e) {
+  var b = e.target.closest('[data-x],[data-a],[data-l]');
+  if (!b || b.disabled) return;
+  if (b.dataset.a !== undefined) { if (V && V.phase === 'round' && !ctx().answered) submit(JSON.parse(b.dataset.a)); return; }
+  if (b.dataset.l !== undefined) { if (V && V.phase === 'round' && !ctx().answered && G.local) { G.local(b.dataset.l, b.dataset.v, ctx()); render(); } return; }
+  var x = b.dataset.x;
+  if (x === 'create') startHost(home.name);
+  else if (x === 'join') startGuest(home.name, home.code);
+  else if (x === 'start') startGame();
+  else if (x === 'again') playAgain();
+  else if (x === 'leave') { try { if (peer) peer.destroy(); } catch (e2) {} location.href = location.pathname; }
+  else if (x === 'copy') {
+    var url = location.href.split('#')[0] + '#' + V.code;
+    var done = function () { copied = true; render(); setTimeout(function () { copied = false; render(); }, 1800); };
+    try { navigator.clipboard.writeText(url).then(done, function () {}); } catch (e3) {}
+  }
+});
+setInterval(function () {
+  if (!V) return;
+  if (V.phase === 'round') {
+    var rem = remaining(), t = $('tsec'), bar = $('tbar');
+    if (t) t.textContent = Math.ceil(rem) + 's';
+    if (bar) bar.style.width = Math.min(100, rem / V.roundSecs * 100) + '%';
+    if (rem <= 0 && !local.sent && !local.timedOut && G.onTimeout) { local.timedOut = true; G.onTimeout(ctx()); }
+  } else if (V.phase === 'reveal') {
+    var n = $('nsec'); if (n) n.textContent = 'Next round in ' + Math.max(0, Math.ceil((V.revealEnd - (Date.now() + offset)) / 1000)) + 's';
+  }
+}, 250);
+
+var m = location.hash.replace('#', '').toUpperCase();
+if (/^[A-Z0-9]{4}$/.test(m)) home.code = m;
+render();
+window.__engine = { state: function () { return V; } };
+})();
+
+</script>
+</body>
+</html>
